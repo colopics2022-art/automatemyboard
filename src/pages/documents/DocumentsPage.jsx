@@ -6,12 +6,12 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 
 const categories = [
-  { value: 'governing',      label: 'Governing Documents',  visibility: 'all'    },
-  { value: 'board_only',     label: 'Board Only',           visibility: 'board'  },
-  { value: 'financial',      label: 'Financials',           visibility: 'board'  },
-  { value: 'meeting',        label: 'Meetings',             visibility: 'all'    },
-  { value: 'maintenance',    label: 'Maintenance',          visibility: 'board'  },
-  { value: 'communication',  label: 'Communications',       visibility: 'all'    },
+  { value: 'governing',     label: 'Governing Documents', visibility: 'all'   },
+  { value: 'board_only',    label: 'Board Only',          visibility: 'board' },
+  { value: 'financial',     label: 'Financials',          visibility: 'board' },
+  { value: 'meeting',       label: 'Meetings',            visibility: 'all'   },
+  { value: 'maintenance',   label: 'Maintenance',         visibility: 'board' },
+  { value: 'communication', label: 'Communications',      visibility: 'all'   },
 ]
 
 const retentionLabel = {
@@ -28,10 +28,9 @@ function PostingStatus({ postedAt }) {
 }
 
 export default function DocumentsPage() {
-  const { profile } = useAuth()
+  const { profile, hasAnyRole } = useAuth()
   const qc = useQueryClient()
-  const role = profile?.role ?? 'owner'
-  const isBoard = ['admin','board'].includes(role)
+  const isBoard = hasAnyRole(['admin', 'board'])
   const [showForm, setShowForm] = useState(false)
   const [activeCategory, setActiveCategory] = useState('all')
   const { register, handleSubmit, reset } = useForm()
@@ -57,15 +56,15 @@ export default function DocumentsPage() {
       const retention = values.category === 'governing' ? null
         : values.category === 'maintenance' ? 15 : 7
       const { error } = await supabase.from('documents').insert({
-        community_id:   profile.community_id,
-        title:          values.title,
-        category:       values.category,
-        drive_file_url: values.drive_file_url || null,
-        drive_file_id:  values.drive_file_url ? values.drive_file_url.split('/d/')[1]?.split('/')[0] : null,
-        visibility:     cat?.visibility ?? 'board',
+        community_id:    profile.community_id,
+        title:           values.title,
+        category:        values.category,
+        drive_file_url:  values.drive_file_url || null,
+        drive_file_id:   values.drive_file_url ? values.drive_file_url.split('/d/')[1]?.split('/')[0] : null,
+        visibility:      cat?.visibility ?? 'board',
         retention_years: retention,
-        hb1021_required: ['governing','meeting','financial'].includes(values.category),
-        created_by:     profile.id,
+        hb1021_required: ['governing', 'meeting', 'financial'].includes(values.category),
+        created_by:      profile.id,
       })
       if (error) throw error
     },
