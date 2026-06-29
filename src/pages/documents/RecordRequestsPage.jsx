@@ -17,10 +17,9 @@ function SLAClock({ dueAt, status }) {
 }
 
 export default function RecordRequestsPage() {
-  const { profile } = useAuth()
+  const { profile, hasAnyRole } = useAuth()
   const qc = useQueryClient()
-  const role = profile?.role ?? 'owner'
-  const isBoard = ['admin','board'].includes(role)
+  const isBoard = hasAnyRole(['admin', 'board'])
   const [showForm, setShowForm] = useState(false)
   const { register, handleSubmit, reset } = useForm()
 
@@ -84,7 +83,7 @@ export default function RecordRequestsPage() {
         )}
       </div>
 
-      {/* New request form (owners) */}
+      {/* New request form (owners only) */}
       {showForm && !isBoard && (
         <div className="card border-brand-200 bg-brand-50">
           <h2 className="text-sm font-semibold text-slate-700 mb-3">Submit a record request</h2>
