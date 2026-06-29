@@ -5,10 +5,10 @@ import { differenceInDays, format, isPast } from 'date-fns'
 
 function StatCard({ label, value, sub, color = 'brand' }) {
   const colors = {
-    brand:  'bg-brand-50  text-brand-700  border-brand-100',
-    green:  'bg-green-50  text-green-700  border-green-100',
-    amber:  'bg-amber-50  text-amber-700  border-amber-100',
-    red:    'bg-red-50    text-red-700    border-red-100',
+    brand: 'bg-brand-50  text-brand-700  border-brand-100',
+    green: 'bg-green-50  text-green-700  border-green-100',
+    amber: 'bg-amber-50  text-amber-700  border-amber-100',
+    red:   'bg-red-50    text-red-700    border-red-100',
   }
   return (
     <div className={`card border ${colors[color]}`}>
@@ -48,8 +48,8 @@ function ComplianceBanner({ requests }) {
 }
 
 export default function DashboardPage() {
-  const { profile } = useAuth()
-  const role = profile?.role ?? 'owner'
+  const { profile, hasAnyRole } = useAuth()
+  const isBoard = hasAnyRole(['admin', 'board'])
   const communityId = profile?.community_id
 
   const { data: units } = useQuery({
@@ -58,7 +58,7 @@ export default function DashboardPage() {
       const { data } = await supabase.from('units').select('*').eq('community_id', communityId)
       return data ?? []
     },
-    enabled: !!communityId && ['admin','board'].includes(role),
+    enabled: !!communityId && isBoard,
   })
 
   const { data: documents } = useQuery({
@@ -74,9 +74,9 @@ export default function DashboardPage() {
     queryKey: ['requests', communityId],
     queryFn: async () => {
       const query = supabase.from('record_requests').select('*').eq('community_id', communityId)
-      const { data } = role === 'owner'
-        ? await query.eq('requester_id', profile.id)
-        : await query
+      const { data } = isBoard
+        ? await query
+        : await query.eq('requester_id', profile.id)
       return data ?? []
     },
     enabled: !!communityId,
@@ -90,7 +90,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-semibold text-slate-900">
-          {role === 'owner' ? 'My Portal' : 'Board Dashboard'}
+          {isBoard ? 'Board Dashboard' : 'My Portal'}
         </h1>
         <p className="text-sm text-slate-500 mt-1">
           {profile?.communities?.name ?? 'Martel Arms HOA'} · {format(new Date(), 'MMMM d, yyyy')}
@@ -98,17 +98,15 @@ export default function DashboardPage() {
       </div>
 
       {/* Compliance banner — board/admin only */}
-      {['admin','board'].includes(role) && (
-        <ComplianceBanner requests={requests} />
-      )}
+      {isBoard && <ComplianceBanner requests={requests} />}
 
-      {/* Stats */}
-      {['admin','board'].includes(role) && (
+      {/* Stats — board/admin only */}
+      {isBoard && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Total units"       value={units?.length ?? 30}  sub="Martel Arms"          color="brand" />
-          <StatCard label="Occupied"          value={occupied}              sub={`${units?.length ?? 30} total`} color="green" />
-          <StatCard label="Open requests"     value={openReqs}              sub="Record requests"      color={openReqs > 0 ? 'amber' : 'green'} />
-          <StatCard label="Documents posted"  value={documents?.length ?? 0} sub="This community"     color="brand" />
+          <StatCard label="Total units"      value={units?.length ?? 30}    sub="Martel Arms"        color="brand" />
+          <StatCard label="Occupied"         value={occupied}               sub={`${units?.length ?? 30} total`} color="green" />
+          <StatCard label="Open requests"    value={openReqs}               sub="Record requests"    color={openReqs > 0 ? 'amber' : 'green'} />
+          <StatCard label="Documents posted" value={documents?.length ?? 0} sub="This community"     color="brand" />
         </div>
       )}
 
@@ -147,7 +145,7 @@ export default function DashboardPage() {
             <p className="text-sm text-slate-400">No record requests.</p>
           )}
           <ul className="space-y-2">
-            {requests?.slice(0,5).map(req => {
+            {requests?.slice(0, 5).map(req => {
               const isOverdue = req.due_at && isPast(new Date(req.due_at)) && req.status !== 'fulfilled'
               const statusColors = {
                 open:        'bg-blue-100 text-blue-700',
